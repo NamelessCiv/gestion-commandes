@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  --color-bg: #FAFAFA;
+  --color-card: #FFFFFF;
+  --color-text: #0A0A0A;
+  --color-text-secondary: #6B7280;
+  --color-border: #E5E7EB;
+  --color-accent: #635BFF;
+  --color-accent-hover: #4F46E5;
+  --color-success: #10B981;
+  --color-error: #EF4444;
+}
+
+/* Mode sombre : appliqué via la classe .dark sur <html>,
+   gérée automatiquement par ParametresContext. La couleur d'accent
+   reste, elle, pilotée dynamiquement en JS (voir ParametresContext). */
+:root.dark {
+  --color-bg: #0A0A0A;
+  --color-card: #171717;
+  --color-text: #FAFAFA;
+  --color-text-secondary: #9CA3AF;
+  --color-border: #262626;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
