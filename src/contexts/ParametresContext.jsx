@@ -43,24 +43,27 @@ export function ParametresProvider({ children }) {
 
   useEffect(() => {
     let annule = false
+    // Empêche une réponse réseau "en retard" d'un ancien utilisateur
+    // d'écraser les données du nouvel utilisateur (race condition).
+    let idUtilisateurCourant = null
 
-    async function charger() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setLoading(false)
-        return
-      }
-
+    async function charger(userIdCible) {
       let { data } = await supabase
         .from('parametres_boutique')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userIdCible)
         .maybeSingle()
 
       if (!data) {
+        const { data: { user } } = await supabase.auth.getUser()
+        const nomBoutiqueInscription = user?.user_metadata?.nom_boutique
         const { data: nouveau, error: erreurInsertion } = await supabase
           .from('parametres_boutique')
-          .insert({ user_id: user.id, ...PARAMETRES_PAR_DEFAUT })
+          .insert({
+            user_id: userIdCible,
+            ...PARAMETRES_PAR_DEFAUT,
+            ...(nomBoutiqueInscription ? { nom_boutique: nomBoutiqueInscription } : {}),
+          })
           .select()
           .single()
 
@@ -71,7 +74,7 @@ export function ParametresProvider({ children }) {
           const { data: existant } = await supabase
             .from('parametres_boutique')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('user_id', userIdCible)
             .maybeSingle()
           data = existant
         } else {
@@ -79,15 +82,66 @@ export function ParametresProvider({ children }) {
         }
       }
 
-      if (!annule && data) {
+      // Si l'utilisateur a changé pendant l'appel réseau, ou si le
+      // Provider a été démonté, on ignore ce résultat périmé.
+      if (annule || userIdCible !== idUtilisateurCourant) return
+
+      if (data) {
         setParametres(data)
         appliquerTheme(data.theme_mode, data.accent_color)
+      } else {
+        setParametres(PARAMETRES_PAR_DEFAUT)
+        appliquerTheme(PARAMETRES_PAR_DEFAUT.theme_mode, PARAMETRES_PAR_DEFAUT.accent_color)
       }
       setLoading(false)
     }
 
-    charger()
-    return () => { annule = true }
+    // Réinitialise immédiatement l'affichage (avant même le fetch réseau)
+    // pour qu'il soit impossible d'afficher, même brièvement, les données
+    // d'un compte précédent pendant le chargement du nouveau.
+    function reinitialiserAffichage() {
+      setParametres(PARAMETRES_PAR_DEFAUT)
+      appliquerTheme(PARAMETRES_PAR_DEFAUT.theme_mode, PARAMETRES_PAR_DEFAUT.accent_color)
+    }
+
+    // Chargement initial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      idUtilisateurCourant = session?.user?.id || null
+      if (session?.user) {
+        reinitialiserAffichage()
+        charger(session.user.id)
+      } else {
+        setLoading(false)
+      }
+    })
+
+    // Réagit à chaque connexion / déconnexion, même sans démontage du Provider
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const nouvelId = session?.user?.id || null
+
+      if (event === 'SIGNED_OUT' || !nouvelId) {
+        idUtilisateurCourant = null
+        reinitialiserAffichage()
+        setLoading(false)
+        return
+      }
+
+      // Évite de recharger inutilement si c'est le même utilisateur
+      // (ex. simple rafraîchissement de token)
+      if (nouvelId === idUtilisateurCourant) return
+
+      idUtilisateurCourant = nouvelId
+      setLoading(true)
+      // Efface immédiatement les données de l'utilisateur précédent avant
+      // de lancer le fetch : plus aucune fenêtre où l'ancien compte reste visible.
+      reinitialiserAffichage()
+      charger(nouvelId)
+    })
+
+    return () => {
+      annule = true
+      subscription?.unsubscribe()
+    }
   }, [])
 
   const mettreAJour = useCallback(async (changements) => {

@@ -1,69 +1,52 @@
-import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { supabase } from './supabaseClient'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { ParametresProvider } from './contexts/ParametresContext'
-import Layout from './components/Layout'
 import Login from './pages/Login'
-import ReinitialiserMotDePasse from './pages/ReinitialiserMotDePasse'
 import Dashboard from './pages/Dashboard'
 import Stock from './pages/Stock'
 import Commandes from './pages/Commandes'
-import Rapports from './pages/Rapports'
-import Factures from './pages/Factures'
-import Clients from './pages/Clients'
 import Parametres from './pages/Parametres'
+import Vitrine from './pages/Vitrine'
+import Clients from './pages/Clients'     // 👈 AJOUT
+import Factures from './pages/Factures'   // 👈 AJOUT
+import Rapports from './pages/Rapports'   // 👈 AJOUT
+import Layout from './components/Layout'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
-  const [session, setSession] = useState(null)
-  const [chargement, setChargement] = useState(true)
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setChargement(false)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  if (chargement) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg">
-        <p className="text-text-secondary text-sm">Chargement...</p>
-      </div>
-    )
-  }
-
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/reinitialiser-mot-de-passe" element={<ReinitialiserMotDePasse />} />
-        {!session ? (
-          <Route path="*" element={<Login />} />
-        ) : (
+    <Router>
+      <ParametresProvider>
+        <Routes>
+          {/* Route publique pour la vitrine client */}
+          <Route path="/boutique/:lien_public" element={<Vitrine />} />
+
+          {/* Route d'authentification */}
+          <Route path="/login" element={<Login />} />
+
+          {/* Routes de gestion de la boutique (Protégées) */}
           <Route
+            path="/"
             element={
-              <ParametresProvider>
+              <ProtectedRoute>
                 <Layout />
-              </ParametresProvider>
+              </ProtectedRoute>
             }
           >
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/stock" element={<Stock />} />
-            <Route path="/commandes" element={<Commandes />} />
-            <Route path="/rapports" element={<Rapports />} />
-            <Route path="/factures" element={<Factures />} />
-            <Route path="/clients" element={<Clients />} />
-            <Route path="/parametres" element={<Parametres />} />
-            <Route path="/reinitialiser-mot-de-passe" element={<ReinitialiserMotDePasse />} />
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="stock" element={<Stock />} />
+            <Route path="commandes" element={<Commandes />} />
+            <Route path="clients" element={<Clients />} />     {/* 👈 AJOUT */}
+            <Route path="factures" element={<Factures />} />   {/* 👈 AJOUT */}
+            <Route path="rapports" element={<Rapports />} />   {/* 👈 AJOUT */}
+            <Route path="parametres" element={<Parametres />} />
           </Route>
-        )}
-      </Routes>
-    </BrowserRouter>
+
+          {/* Redirection par défaut */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </ParametresProvider>
+    </Router>
   )
 }
 

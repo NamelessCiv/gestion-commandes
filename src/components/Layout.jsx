@@ -1,145 +1,183 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Package, ShoppingCart, FileText, Users, BarChart3, Settings, LogOut } from 'lucide-react'
 import { supabase } from '../supabaseClient'
 import { useParametres } from '../contexts/ParametresContext'
+import { 
+  LayoutDashboard, 
+  Package, 
+  ShoppingCart, 
+  Users, 
+  FileText, 
+  BarChart3, 
+  Settings, 
+  LogOut, 
+  ExternalLink,
+  Menu,
+  X
+} from 'lucide-react'
 
-const navItems = [
-  { to: '/', label: 'Tableau de bord', icon: LayoutDashboard },
-  { to: '/stock', label: 'Stock', icon: Package },
-  { to: '/commandes', label: 'Commandes', icon: ShoppingCart },
-  { to: '/rapports', label: 'Rapports', icon: BarChart3 },
-  { to: '/factures', label: 'Factures', icon: FileText },
-  { to: '/clients', label: 'Clients', icon: Users },
-]
-
-function MenuProfil() {
-  const [ouvert, setOuvert] = useState(false)
-  const menuRef = useRef(null)
-  const navigate = useNavigate()
+export default function Layout() {
   const { parametres } = useParametres()
+  const navigate = useNavigate()
+  const [menuOuvert, setMenuOuvert] = useState(false)
 
-  useEffect(() => {
-    function gererClicExterieur(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setOuvert(false)
-      }
-    }
-    document.addEventListener('mousedown', gererClicExterieur)
-    return () => document.removeEventListener('mousedown', gererClicExterieur)
-  }, [])
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    navigate('/login')
+  }
 
-  const initiale = parametres.nom_boutique?.charAt(0).toUpperCase() || 'B'
-  const estPremium = parametres.plan === 'premium'
+  const accentColor = parametres?.accent_color || '#635BFF'
+
+  // Configuration des onglets avec leurs vrais chemins d'accès (routes)
+  const menuItems = [
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/stock', label: 'Mon Stock', icon: Package },
+    { path: '/commandes', label: 'Commandes', icon: ShoppingCart },
+    { path: '/clients', label: 'Clients', icon: Users },
+    { path: '/factures', label: 'Factures', icon: FileText },
+    { path: '/rapports', label: 'Rapports', icon: BarChart3 },
+    { path: '/parametres', label: 'Paramètres', icon: Settings },
+  ]
 
   return (
-    <div className="relative" ref={menuRef}>
-      <button
-        onClick={() => setOuvert((o) => !o)}
-        className="w-9 h-9 rounded-full bg-accent text-white flex items-center justify-center font-semibold text-sm overflow-hidden shrink-0"
-      >
-        {parametres.logo_url ? (
-          <img src={parametres.logo_url} alt="" className="w-full h-full object-cover" />
-        ) : (
-          initiale
-        )}
-      </button>
+    <div className="min-h-screen bg-[#FAFAFA] flex flex-col md:flex-row text-gray-900 antialiased">
+      
+      {/* BARRE LATÉRALE DE NAVIGATION */}
+      <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-gray-100 flex flex-col md:justify-between shrink-0 relative z-20">
 
-      {ouvert && (
-        <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-xl shadow-lg py-2 z-20">
-          <div className="px-4 py-2 border-b border-border">
-            <p className="text-sm font-medium text-text truncate">{parametres.nom_boutique}</p>
-            <span
-              className={`inline-block mt-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${
-                estPremium ? 'text-accent bg-accent/10' : 'text-text-secondary bg-bg'
-              }`}
-            >
-              {estPremium ? 'Premium' : 'Gratuit'}
-            </span>
+        {/* --- BLOC DESKTOP (sidebar classique, inchangé) --- */}
+        <div className="hidden md:block p-6">
+          <div className="flex items-center gap-3 border-b border-gray-50 pb-5 mb-5">
+            {parametres?.logo_url ? (
+              <img src={parametres.logo_url} alt="Logo" className="w-9 h-9 rounded-xl object-cover border border-gray-100" />
+            ) : (
+              <div style={{ backgroundColor: accentColor }} className="w-9 h-9 text-white font-bold rounded-xl flex items-center justify-center text-sm">
+                {(parametres?.nom_boutique || 'B').charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0">
+              <h2 className="font-bold text-sm text-gray-950 truncate">{parametres?.nom_boutique || 'Ma Boutique'}</h2>
+              {parametres?.lien_public && (
+                <a 
+                  href={`/boutique/${parametres.lien_public}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="text-[11px] text-gray-400 font-medium flex items-center gap-1 hover:text-gray-600 mt-0.5"
+                >
+                  <span>Voir la vitrine</span>
+                  <ExternalLink size={10} />
+                </a>
+              )}
+            </div>
           </div>
+
+          <nav className="space-y-1">
+            {menuItems.map((item) => {
+              const Icone = item.icon
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  style={({ isActive }) => isActive ? { backgroundColor: `${accentColor}12`, color: accentColor } : {}}
+                  className={({ isActive }) => `
+                    flex items-center gap-3 px-4 h-11 rounded-xl text-xs font-bold uppercase tracking-wider transition-all
+                    ${isActive ? '' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}
+                  `}
+                >
+                  <Icone size={16} />
+                  <span>{item.label}</span>
+                </NavLink>
+              )
+            })}
+          </nav>
+        </div>
+
+        <div className="hidden md:block p-6 border-t border-gray-50 bg-neutral-50/50">
           <button
-            onClick={() => { setOuvert(false); navigate('/parametres') }}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:bg-bg hover:text-text transition-colors"
-          >
-            <Settings size={16} />
-            Paramètres
-          </button>
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:bg-bg hover:text-error transition-colors"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 h-11 rounded-xl text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
           >
             <LogOut size={16} />
-            Se déconnecter
+            <span>Déconnexion</span>
           </button>
         </div>
-      )}
-    </div>
-  )
-}
 
-function Layout() {
-  const { parametres } = useParametres()
+        {/* --- BLOC MOBILE (top bar compacte + dropdown) --- */}
+        <div className="md:hidden">
+          {/* Top bar : hauteur fixe, padding propre, une seule bordure */}
+          <div className="h-14 px-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              {parametres?.logo_url ? (
+                <img src={parametres.logo_url} alt="Logo" className="w-8 h-8 rounded-lg object-cover border border-gray-100 shrink-0" />
+              ) : (
+                <div style={{ backgroundColor: accentColor }} className="w-8 h-8 text-white font-bold rounded-lg flex items-center justify-center text-xs shrink-0">
+                  {(parametres?.nom_boutique || 'B').charAt(0).toUpperCase()}
+                </div>
+              )}
+              <h2 className="font-bold text-sm text-gray-950 truncate">{parametres?.nom_boutique || 'Ma Boutique'}</h2>
+            </div>
 
-  return (
-    <div className="min-h-screen bg-bg lg:flex">
-      {/* Sidebar - visible uniquement sur grand écran */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-border lg:bg-card lg:h-screen lg:sticky lg:top-0">
-        <div className="px-6 py-6">
-          <h1 className="text-lg font-semibold text-text truncate">{parametres.nom_boutique}</h1>
-        </div>
-        <nav className="flex-1 px-3 space-y-1">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-accent/10 text-accent'
-                    : 'text-text-secondary hover:bg-bg hover:text-text'
-                }`
-              }
+            <button
+              onClick={() => setMenuOuvert(!menuOuvert)}
+              className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-all"
+              aria-label={menuOuvert ? 'Fermer le menu' : 'Ouvrir le menu'}
+              aria-expanded={menuOuvert}
             >
-              <Icon size={18} />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+              {menuOuvert ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
+
+          {/* Dropdown : n'existe dans le DOM que si ouvert, padding indépendant de la top bar */}
+          {menuOuvert && (
+            <nav className="px-3 pb-3 pt-1 border-t border-gray-100 flex flex-col gap-1">
+              {parametres?.lien_public && (
+                <a
+                  href={`/boutique/${parametres.lien_public}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[11px] text-gray-400 font-medium flex items-center gap-1 hover:text-gray-600 px-1 pt-2 pb-1"
+                >
+                  <span>Voir la vitrine</span>
+                  <ExternalLink size={10} />
+                </a>
+              )}
+
+              {menuItems.map((item) => {
+                const Icone = item.icon
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMenuOuvert(false)}
+                    style={({ isActive }) => isActive ? { backgroundColor: `${accentColor}12`, color: accentColor } : {}}
+                    className={({ isActive }) => `
+                      flex items-center gap-3 px-3 h-10 rounded-lg text-xs font-bold uppercase tracking-wider transition-all
+                      ${isActive ? '' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}
+                    `}
+                  >
+                    <Icone size={16} />
+                    <span>{item.label}</span>
+                  </NavLink>
+                )
+              })}
+
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-3 h-10 rounded-lg text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 transition-all cursor-pointer mt-1 border-t border-gray-50 pt-2"
+              >
+                <LogOut size={16} />
+                <span>Déconnexion</span>
+              </button>
+            </nav>
+          )}
+        </div>
       </aside>
 
-      {/* Contenu principal */}
-      <div className="flex-1 pb-20 lg:pb-0">
-        {/* Barre du haut - profil en haut à droite, sur mobile et desktop */}
-        <header className="sticky top-0 z-10 bg-card border-b border-border px-4 lg:px-8 py-3 flex items-center justify-end">
-          <MenuProfil />
-        </header>
+      {/* ZONE DE CONTENU PRINCIPALE (Affiche la page demandée) */}
+      <main className="flex-1 overflow-y-auto max-h-screen">
+        <Outlet />
+      </main>
 
-        <main className="px-4 py-6 lg:px-8 lg:py-8 max-w-5xl mx-auto">
-          <Outlet />
-        </main>
-      </div>
-
-      {/* Navigation basse - visible uniquement sur mobile */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border flex justify-around py-2 z-10">
-        {navItems.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-1 px-2 py-1 text-xs font-medium transition-colors ${
-                isActive ? 'text-accent' : 'text-text-secondary'
-              }`
-            }
-          >
-            <Icon size={20} />
-            {label}
-          </NavLink>
-        ))}
-      </nav>
     </div>
   )
 }
-
-export default Layout

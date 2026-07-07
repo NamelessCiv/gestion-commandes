@@ -1,114 +1,185 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { supabase } from '../supabaseClient'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, ChevronDown, ChevronUp, Users, ShoppingBag } from 'lucide-react'
+import { useParametres } from '../contexts/ParametresContext'
 
-const STATUT_LABELS = {
-  en_attente: 'En attente',
-  payee: 'Payée',
-  en_preparation: 'En préparation',
-  expediee: 'Expédiée',
-  livree: 'Livrée',
+function formaterMontant(nombre) {
+  return Math.round(Number(nombre) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 }
 
-function Clients() {
+export default function Clients() {
+  const { parametres } = useParametres()
+  const accentColor = parametres?.accent_color || '#493ee5'
+
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
-  const [clientOuvert, setClientOuvert] = useState(null)
   const [recherche, setRecherche] = useState('')
+  const [clientOuvert, setClientOuvert] = useState(null)
 
   useEffect(() => {
     async function fetchClients() {
       setLoading(true)
-      const { data } = await supabase
-        .from('clients')
-        .select('*, commandes(id, total, statut, created_at)')
-        .order('nom')
+      try {
+        // 1. Récupérer l'utilisateur connecté
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          setLoading(false)
+          return
+        }
 
-      setClients(data || [])
-      setLoading(false)
+        // 2. Charger les commandes filtrées par user_id
+        const { data, error } = await supabase
+          .from('commandes')
+          .select('*')
+          .eq('user_id', user.id)
+
+        if (error) {
+          console.error("Erreur de lecture Supabase :", error)
+        }
+
+        // 3. Regroupement intelligent par client unique
+        const regroupement = {}
+        if (data) {
+          data.forEach((c) => {
+            const cle = (c.telephone_client || c.nom_client || 'anonyme').trim().toLowerCase()
+            if (!regroupement[cle]) {
+              regroupement[cle] = {
+                nom: c.nom_client || 'Client Inconnu',
+                telephone: c.telephone_client || 'Non spécifié',
+                totalDepense: 0,
+                nbCommandes: 0,
+                achats: []
+              }
+            }
+            regroupement[cle].totalDepense += Number(c.total || 0)
+            regroupement[cle].nbCommandes += 1
+            regroupement[cle].achats.push(c)
+          })
+        }
+        setClients(Object.values(regroupement))
+      } catch (err) {
+        console.error("Erreur système lors du chargement des clients :", err)
+      } finally {
+        setLoading(false)
+      }
     }
-
     fetchClients()
   }, [])
 
-  const clientsFiltres = clients.filter((c) =>
-    c.nom.toLowerCase().includes(recherche.toLowerCase())
+  // Filtrage en temps réel selon la recherche
+  const clientsFiltrés = clients.filter(c =>
+    c.nom.toLowerCase().includes(recherche.toLowerCase()) ||
+    c.telephone.includes(recherche)
   )
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-text">Clients</h1>
-      <p className="text-text-secondary mt-1">Historique de tes clients</p>
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 text-gray-900">
+      
+      {/* En-tête de la page */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight text-gray-950 flex items-center gap-2">
+            <Users size={24} style={{ color: accentColor }} /> Clients ({clientsFiltrés.length})
+          </h1>
+          <p className="text-xs font-medium text-gray-500 mt-1">Gère ton portefeuille client et analyse leurs habitudes d'achat</p>
+        </div>
 
-      <input
-        type="text"
-        value={recherche}
-        onChange={(e) => setRecherche(e.target.value)}
-        placeholder="Rechercher un client..."
-        className="mt-6 w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-      />
-
-      <div className="mt-4 space-y-2">
-        {loading ? (
-          <p className="text-text-secondary text-sm">Chargement...</p>
-        ) : clientsFiltres.length === 0 ? (
-          <div className="text-center py-12 border border-dashed border-border rounded-xl">
-            <p className="text-text-secondary text-sm">Aucun client trouvé.</p>
-          </div>
-        ) : (
-          clientsFiltres.map((client) => {
-            const commandesTriees = [...(client.commandes || [])].sort(
-              (a, b) => new Date(b.created_at) - new Date(a.created_at)
-            )
-            const totalDepense = commandesTriees
-              .filter((c) => c.statut === 'payee')
-              .reduce((sum, c) => sum + Number(c.total), 0)
-            const estOuvert = clientOuvert === client.id
-
-            return (
-              <div key={client.id} className="bg-card border border-border rounded-xl overflow-hidden">
-                <button
-                  onClick={() => setClientOuvert(estOuvert ? null : client.id)}
-                  className="w-full flex items-center justify-between p-4 text-left"
-                >
-                  <div>
-                    <p className="font-medium text-text">{client.nom}</p>
-                    <p className="text-sm text-text-secondary">
-                      {client.telephone || 'Pas de téléphone'} · {commandesTriees.length} commande
-                      {commandesTriees.length > 1 ? 's' : ''} · {totalDepense.toLocaleString()} FCFA dépensés
-                    </p>
-                  </div>
-                  {estOuvert ? (
-                    <ChevronUp size={18} className="text-text-secondary shrink-0" />
-                  ) : (
-                    <ChevronDown size={18} className="text-text-secondary shrink-0" />
-                  )}
-                </button>
-
-                {estOuvert && (
-                  <div className="border-t border-border px-4 py-3 space-y-2">
-                    {commandesTriees.length === 0 ? (
-                      <p className="text-sm text-text-secondary">Aucune commande pour ce client.</p>
-                    ) : (
-                      commandesTriees.map((c) => (
-                        <div key={c.id} className="flex items-center justify-between text-sm">
-                          <span className="text-text-secondary">
-                            {new Date(c.created_at).toLocaleDateString('fr-FR')}
-                          </span>
-                          <span className="text-text">{c.total.toLocaleString()} FCFA</span>
-                          <span className="text-text-secondary">{STATUT_LABELS[c.statut]}</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          })
-        )}
+        {/* Barre de recherche */}
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <input
+            type="text"
+            placeholder="Rechercher un nom ou numéro..."
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            className="w-full h-11 pl-10 pr-4 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-gray-300 transition-all shadow-2xs"
+          />
+        </div>
       </div>
+
+      {loading ? (
+        <div className="text-center py-12 text-sm text-gray-500 font-medium">Chargement du fichier clients...</div>
+      ) : clientsFiltrés.length === 0 ? (
+        <div className="text-center py-16 bg-white border border-gray-100 rounded-2xl shadow-2xs">
+          <p className="text-sm text-gray-400 font-medium">Aucun client trouvé.</p>
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-2xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-gray-50 text-gray-400 font-bold border-b border-gray-100">
+                  <th className="p-4 uppercase tracking-wider">Informations Client</th>
+                  <th className="p-4 uppercase tracking-wider text-center">Commandes</th>
+                  <th className="p-4 uppercase tracking-wider text-right">Total Dépensé</th>
+                  <th className="p-4 uppercase tracking-wider text-right">Détails</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {clientsFiltrés.map((c, index) => {
+                  const estOuvert = clientOuvert === index
+                  return (
+                    <Fragment key={index}>
+                      <tr className="hover:bg-gray-50/40 transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-700 font-black flex items-center justify-center text-sm uppercase">
+                              {c.nom.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-950 text-sm">{c.nom}</p>
+                              <p className="text-gray-400 font-mono text-[11px] mt-0.5">{c.telephone}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4 text-center font-bold text-gray-700 text-sm">
+                          {c.nbCommandes}
+                        </td>
+                        <td className="p-4 text-right font-mono font-black text-gray-950 text-sm">
+                          {formaterMontant(c.totalDepense)} F
+                        </td>
+                        <td className="p-4 text-right">
+                          <button
+                            onClick={() => setClientOuvert(estOuvert ? null : index)}
+                            className="p-2 hover:bg-gray-100 rounded-xl transition-all inline-flex items-center cursor-pointer"
+                          >
+                            {estOuvert ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Sous-tableau déroulant pour l'historique d'achat */}
+                      {estOuvert && (
+                        <tr>
+                          <td colSpan="4" className="bg-neutral-50/50 p-4 border-t border-b border-gray-100">
+                            <div className="space-y-2">
+                              <p className="text-[10px] text-gray-400 uppercase font-black tracking-wider">Historique complet des transactions</p>
+                              <div className="space-y-1">
+                                {c.achats.map((ach, aIdx) => (
+                                  <div key={aIdx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100 shadow-3xs text-xs">
+                                    <div className="flex items-center gap-2">
+                                      <ShoppingBag size={14} className="text-gray-400" />
+                                      <div>
+                                        <p className="font-bold text-gray-900">Achat du {new Date(ach.created_at).toLocaleDateString('fr-FR')}</p>
+                                        <p className="text-[10px] text-gray-400 uppercase font-bold mt-0.5">{ach.statut}</p>
+                                      </div>
+                                    </div>
+                                    <span className="font-mono font-bold text-gray-950">{formaterMontant(ach.total)} F</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
-export default Clients

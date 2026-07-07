@@ -3,26 +3,77 @@
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
 
+  /* Surfaces */
   --color-bg: #FAFAFA;
   --color-card: #FFFFFF;
-  --color-text: #0A0A0A;
-  --color-text-secondary: #6B7280;
-  --color-border: #E5E7EB;
+  --color-surface-muted: #F5F2FF;
+  --color-surface-container: #F0ECFA;
+
+  /* Texte */
+  --color-text: #1B1B24;
+  --color-text-secondary: #464555;
+  --color-outline: #777587;
+  --color-border: #C7C4D8;
+
+  /* Accent (violet ivoirien) - piloté dynamiquement par boutique,
+     voir ParametresContext (JS met à jour ces variables à l'exécution) */
   --color-accent: #635BFF;
-  --color-accent-hover: #4F46E5;
-  --color-success: #10B981;
-  --color-error: #EF4444;
+  --color-accent-hover: #4C42E9;
+
+  /* Statuts sémantiques (alertes stock, statuts commande, en-têtes premium...) */
+  --color-success: #16A34A;
+  --color-success-bg: #DCFCE7;
+  --color-error: #BA1A1A;
+  --color-error-bg: #FFDAD6;
+  --color-error-text-strong: #93000A;
+
+  /* Rôles typographiques (Inter) — reprennent exactement les rôles
+     du design system fourni (headline-lg, headline-md, body, label-caps, price) */
+  --text-headline-lg: 2rem;
+  --text-headline-lg--line-height: 2.5rem;
+  --text-headline-lg--font-weight: 700;
+  --text-headline-lg--letter-spacing: -0.02em;
+
+  --text-headline-lg-mobile: 1.5rem;
+  --text-headline-lg-mobile--line-height: 2rem;
+  --text-headline-lg-mobile--font-weight: 700;
+  --text-headline-lg-mobile--letter-spacing: -0.02em;
+
+  --text-headline-md: 1.25rem;
+  --text-headline-md--line-height: 1.75rem;
+  --text-headline-md--font-weight: 600;
+  --text-headline-md--letter-spacing: -0.01em;
+
+  --text-label-caps: 0.75rem;
+  --text-label-caps--line-height: 1rem;
+  --text-label-caps--font-weight: 600;
+  --text-label-caps--letter-spacing: 0.05em;
+
+  --text-price: 1.125rem;
+  --text-price--line-height: 1.5rem;
+  --text-price--font-weight: 700;
+  --text-price--letter-spacing: 0.02em;
+
+  /* Profondeur par ombres douces plutôt que par bordures */
+  --shadow-card: 0px 4px 20px rgba(0, 0, 0, 0.03);
+  --shadow-modal: 0px 10px 32px rgba(0, 0, 0, 0.08);
 }
 
 /* Mode sombre : appliqué via la classe .dark sur <html>,
    gérée automatiquement par ParametresContext. La couleur d'accent
    reste, elle, pilotée dynamiquement en JS (voir ParametresContext). */
 :root.dark {
-  --color-bg: #0A0A0A;
-  --color-card: #171717;
-  --color-text: #FAFAFA;
-  --color-text-secondary: #9CA3AF;
-  --color-border: #262626;
+  --color-bg: #16151D;
+  --color-card: #201F29;
+  --color-surface-muted: #262533;
+  --color-surface-container: #2B2A38;
+  --color-text: #F3EFFD;
+  --color-text-secondary: #B0AEC2;
+  --color-outline: #918FA3;
+  --color-border: #38364880;
+
+  --shadow-card: 0px 4px 20px rgba(0, 0, 0, 0.25);
+  --shadow-modal: 0px 10px 32px rgba(0, 0, 0, 0.45);
 }
 
 body {
@@ -30,4 +81,16 @@ body {
   color: var(--color-text);
   font-family: var(--font-sans);
   transition: background-color 0.2s ease, color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Chiffres alignés pour montants/quantités : évite que les colonnes de
+   nombres "dansent" dans les tableaux et cartes de rapports */
+.chiffres {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Zone de sécurité en bas d'écran (encoche / barre d'accueil iOS) */
+.pb-safe {
+  padding-bottom: calc(0.625rem + env(safe-area-inset-bottom));
 }
