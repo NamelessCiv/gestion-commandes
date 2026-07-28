@@ -2,23 +2,27 @@
 
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  /* Surfaces */
-  --color-bg: #FAFAFA;
+  /* Surfaces (teinte violette froide, cohérente avec la marque) */
+  --color-bg: #F7F6FB;
   --color-card: #FFFFFF;
-  --color-surface-muted: #F5F2FF;
-  --color-surface-container: #F0ECFA;
+  --color-surface-muted: #F0ECFA;
+  --color-surface-container: #E7E4F0;
 
   /* Texte */
-  --color-text: #1B1B24;
-  --color-text-secondary: #464555;
-  --color-outline: #777587;
-  --color-border: #C7C4D8;
+  --color-text: #1A1625;
+  --color-text-secondary: #55506B;
+  --color-outline: #8983A3;
+  --color-border: #E7E4F0;
 
-  /* Accent (violet ivoirien) - piloté dynamiquement par boutique,
-     voir ParametresContext (JS met à jour ces variables à l'exécution) */
-  --color-accent: #635BFF;
-  --color-accent-hover: #4C42E9;
+  /* Marque "Ma Boutique" — FIXE, utilisée dans tout l'admin
+     (sidebar, dashboard, boutons). Ne dépend plus de la boutique. */
+  --color-brand: #2E2154;
+  --color-brand-light: #3D2C6E;
+  --color-cta: #FF6B4A;
+  --color-cta-hover: #F0553A;
 
   /* Statuts sémantiques (alertes stock, statuts commande, en-têtes premium...) */
   --color-success: #16A34A;
@@ -26,6 +30,11 @@
   --color-error: #BA1A1A;
   --color-error-bg: #FFDAD6;
   --color-error-text-strong: #93000A;
+
+  /* Token Warning (ambre / orange) — Alertes stock bas & statuts en attente */
+  --color-warning: #D97706;
+  --color-warning-bg: #FEF3C7;
+  --color-warning-border: #FDE68A;
 
   /* Rôles typographiques (Inter) — reprennent exactement les rôles
      du design system fourni (headline-lg, headline-md, body, label-caps, price) */
@@ -60,8 +69,7 @@
 }
 
 /* Mode sombre : appliqué via la classe .dark sur <html>,
-   gérée automatiquement par ParametresContext. La couleur d'accent
-   reste, elle, pilotée dynamiquement en JS (voir ParametresContext). */
+   gérée automatiquement par ParametresContext. */
 :root.dark {
   --color-bg: #16151D;
   --color-card: #201F29;
@@ -71,6 +79,16 @@
   --color-text-secondary: #B0AEC2;
   --color-outline: #918FA3;
   --color-border: #38364880;
+
+  /* Adaptation du Warning en dark mode pour garder une lisibilité optimale */
+  --color-warning: #FBBF24;
+  --color-warning-bg: #3B2D14;
+  --color-warning-border: #543E1B;
+
+  /* La marque reste identique en mode sombre : la sidebar violette
+     est déjà foncée par nature, elle ne change pas de teinte. */
+  --color-cta: #FF7D5F;
+  --color-cta-hover: #FF6B4A;
 
   --shadow-card: 0px 4px 20px rgba(0, 0, 0, 0.25);
   --shadow-modal: 0px 10px 32px rgba(0, 0, 0, 0.45);

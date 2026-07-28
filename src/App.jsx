@@ -1,3 +1,4 @@
+// Fichier : src/App.jsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { ParametresProvider } from './contexts/ParametresContext'
 import Login from './pages/Login'
@@ -6,13 +7,13 @@ import Stock from './pages/Stock'
 import Commandes from './pages/Commandes'
 import Parametres from './pages/Parametres'
 import Vitrine from './pages/Vitrine'
-import Clients from './pages/Clients'     // 👈 AJOUT
-import Factures from './pages/Factures'   // 👈 AJOUT
-import Rapports from './pages/Rapports'   // 👈 AJOUT
+import Clients from './pages/Clients'
+import Factures from './pages/Factures'
+import Rapports from './pages/Rapports'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 
-function App() {
+export default function App() {
   return (
     <Router>
       <ParametresProvider>
@@ -23,7 +24,7 @@ function App() {
           {/* Route d'authentification */}
           <Route path="/login" element={<Login />} />
 
-          {/* Routes de gestion de la boutique (Protégées) */}
+          {/* Routes protégées de l'application (encapsulées par Layout) */}
           <Route
             path="/"
             element={
@@ -36,18 +37,16 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="stock" element={<Stock />} />
             <Route path="commandes" element={<Commandes />} />
-            <Route path="clients" element={<Clients />} />     {/* 👈 AJOUT */}
-            <Route path="factures" element={<Factures />} />   {/* 👈 AJOUT */}
-            <Route path="rapports" element={<Rapports />} />   {/* 👈 AJOUT */}
+            <Route path="clients" element={<Clients />} />
+            <Route path="factures" element={<Factures />} />
+            <Route path="rapports" element={<Rapports />} />
             <Route path="parametres" element={<Parametres />} />
           </Route>
 
-          {/* Redirection par défaut */}
+          {/* Redirection par défaut si la route n'existe pas */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </ParametresProvider>
     </Router>
   )
 }
-
-export default App
